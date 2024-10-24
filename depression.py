@@ -92,23 +92,23 @@ if __name__ == '__main__':
     parser.add_argument(
         '--test_num',type=int, default=100)#test_nums
     parser.add_argument(
-        '--exclude_key', type=bool,default=False)#layer 15 only = True , else all layers = False   #######
+        '--exclude_key', type=bool,default=True)#layer 15 only = True , else all layers = False   #######
     args = parser.parse_args()
 
-    datasets = ["dataset/dataset_1_Beck's Depression Inventory.json", 
-                "dataset/dataset_2_State Trait Anxiety Inventory.json",
-                "dataset/dataset_3_GAD-7 Anxiety.json",
-                "dataset/dataset_4_HAM-A.json",
-                "dataset/dataset_5_ ADHD.json",
-                "dataset/dataset_6_ OCD.json"
+    datasets = ["depression_dataset/dataset_1_Beck's Depression Inventory.json", 
+                "depression_dataset/dataset_2_State Trait Anxiety Inventory.json",
+                "depression_dataset/dataset_3_GAD-7 Anxiety.json",
+                "depression_dataset/dataset_4_HAM-A.json",
+                "depression_dataset/dataset_5_ ADHD.json",
+                "depression_dataset/dataset_6_ OCD.json"
                 ]
     
-    output_plot = ['dataset_1', #######1
-                   'anxiety_all_layers_State Trait Anxiety Inventory',
-                   'anxiety_all_layers_GAD-7 Anxiety',
-                   'anxiety_all_layers_HAM-A',
-                   'ADHD_all_Layers',
-                   'OCD_dataset_6']
+    output_plot = ['dataset_1', 
+                   'anxiety_State Trait Anxiety Inventory',
+                   'anxiety_GAD-7 Anxiety',
+                   'anxiety_HAM-A',
+                   'ADHD',
+                   'OCD']
     num=[1,2,3,4,5,6]
     
     model_name = "mistralai/Mistral-7B-Instruct-v0.2"
@@ -120,7 +120,7 @@ if __name__ == '__main__':
     user_tag, asst_tag = "[INST]", "[/INST]"
 
     # data from repeng 
-    with open("./data/all_truncated_outputs.json") as f:
+    with open("./test_data/all_truncated_outputs.json") as f:
         output_suffixes = json.load(f)
     truncated_output_suffixes = [
         tokenizer.convert_tokens_to_string(tokens[:i])
@@ -130,11 +130,17 @@ if __name__ == '__main__':
     model.reset() 
     depressed_dataset = make_dataset(
         "Act as if you're extremely {persona}.",
-        ############################
-        ["anxious, overwhelmed"],
-        ["relaxed, composed"],
-        # ["hopeless person","depressed person"],
-        # ["optimistic person","happy person"],
+        ["restless", "impulsive"],#ADHD
+        ["calm", "cautious"],
+
+        # ["anxious", "overwhelmed"],anxiety 
+        # ["relaxed", "composed"],
+
+        # ["compulsive", "perfectionistic"], OCD
+        # ["laid-back", "easygoing"],
+
+        # ["hopeless ","depressed "], common data ALL
+        # ["optimistic ","happy "],
         truncated_output_suffixes,
         )
     depressed_vector = ControlVector.train(model, tokenizer, depressed_dataset)
@@ -148,8 +154,8 @@ if __name__ == '__main__':
         pass
     
     for dataset_file, output_file,num in zip(datasets, output_plot,num):
-        if dataset_file !="dataset/dataset_2_State Trait Anxiety Inventory.json" and dataset_file != "dataset/dataset_3_GAD-7 Anxiety.json" and dataset_file != "dataset/dataset_4_HAM-A.json":
-            continue
+        # if dataset_file !="dataset/dataset_6_ OCD.json": just choose one to test
+        #     continue
         
         print("experiment's name:",output_file)
         with open(dataset_file) as f:
@@ -198,17 +204,13 @@ if __name__ == '__main__':
         x_zero = [x for x, y in zip(x_depression_str, all_ctr_avg) if y == 0]
         y_zero = [y for y in all_ctr_avg if y == 0]
 
-        # 绘制非 0 的点
         plt.scatter(x_non_zero, y_non_zero, color='blue', label='Normal Answer')
-        # 绘制 0 的点
         plt.scatter(x_zero, y_zero, color='red', label='Can not get a answer')
         plt.xlabel('Control_Vec Strength')
         plt.ylabel('Tested Score')
-        plt.title(f'{output_file}')#######
+        plt.title(f'{output_file}')
         plt.legend()  
-
-        # 保存和显示图像
-        plt.savefig( f"figure/{output_file}.png")#######3
+        plt.savefig( f"figure/{output_file}.png")
         plt.show()
         plt.clf()
         
